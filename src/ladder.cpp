@@ -1,13 +1,10 @@
+#include "ladder.h"
 #include <iostream>
 #include <fstream>
 #include <queue>
 #include <set>
-#include <unordered_set>
-#include <map>
 #include <vector>
 #include <string>
-#include <cmath>
-#include "ladder.h"
 
 using namespace std;
 
@@ -16,72 +13,63 @@ void error(string word1, string word2, string msg) {
 }
 
 bool edit_distance_within(const string& str1, const string& str2, int d) {
-    if (str1.length() != str2.length()) return false;
-    int diff_count = 0;
-    for (size_t i = 0; i < str1.length(); ++i) {
-        if (str1[i] != str2[i]) {
-            diff_count++;
-            if (diff_count > d) return false;
+    int len1 = str1.length(), len2 = str2.length();
+    if (abs(len1 - len2) > 1) return false; // Length difference must be at most 1
+
+    int i = 0, j = 0, edits = 0;
+    
+    while (i < len1 && j < len2) {
+        if (str1[i] != str2[j]) {
+            if (++edits > d) return false;
+            if (len1 > len2) i++;  // Deletion
+            else if (len1 < len2) j++; // Insertion
+            else { i++; j++; } // Replacement
+        } else {
+            i++; j++; // Match, move both pointers
         }
     }
-    return diff_count == d;
+    
+    return (edits == 1) || (edits == 0 && abs(len1 - len2) == 1); // Account for last char insert/delete
 }
+
 
 bool is_adjacent(const string& word1, const string& word2) {
     return edit_distance_within(word1, word2, 1);
 }
 
+
 vector<string> generate_word_ladder(const string& begin_word, const string& end_word, const set<string>& word_list) {
-    unordered_set<string> dict(word_list.begin(), word_list.end());
-    if (!dict.count(end_word)) return {}; // End word must be in the dictionary
-
-    queue<vector<string>> ladders;
-    ladders.push({begin_word});
-    unordered_set<string> visited;
+    queue<vector<string>> ladder_queue;
+    set<string> visited;
+    
+    ladder_queue.push({begin_word});
     visited.insert(begin_word);
-
-    while (!ladders.empty()) {
-        int level_size = ladders.size();
-        unordered_set<string> local_visited; // Track visited words at this BFS level
-
-        for (int i = 0; i < level_size; ++i) {
-            vector<string> ladder = ladders.front();
-            ladders.pop();
-            string current = ladder.back();
-
-            if (current == end_word) return ladder;
-
-            // Generate all possible one-letter variations of the current word
-            for (int j = 0; j < current.size(); ++j) {
-                char original = current[j];
-                for (char c = 'a'; c <= 'z'; ++c) {
-                    if (c == original) continue;
-                    string neighbor = current;
-                    neighbor[j] = c;
-
-                    // Check if the generated neighbor is valid
-                    if (dict.count(neighbor) && !visited.count(neighbor)) {
-                        vector<string> new_ladder = ladder;
-                        new_ladder.push_back(neighbor);
-                        ladders.push(new_ladder);
-                        local_visited.insert(neighbor);
-                    }
-                }
-                current[j] = original; // Restore original character
+    
+    while (!ladder_queue.empty()) {
+        vector<string> ladder = ladder_queue.front();
+        ladder_queue.pop();
+        
+        string last_word = ladder.back();
+        
+        for (const string& word : word_list) {
+            if (is_adjacent(last_word, word) && visited.find(word) == visited.end()) {
+                vector<string> new_ladder = ladder;
+                new_ladder.push_back(word);
+                
+                if (word == end_word) return new_ladder;
+                
+                ladder_queue.push(new_ladder);
+                visited.insert(word);
             }
         }
-        visited.insert(local_visited.begin(), local_visited.end()); // Update visited after processing the level
     }
-
+    
     return {}; // No ladder found
 }
 
-void load_words(set<string>& word_list, const string& file_name) {
+
+void load_words(set<string> &word_list, const string& file_name) {
     ifstream file(file_name);
-    if (!file) {
-        cerr << "Error opening file: " << file_name << endl;
-        return;
-    }
     string word;
     while (file >> word) {
         word_list.insert(word);
@@ -95,8 +83,8 @@ void print_word_ladder(const vector<string>& ladder) {
         return;
     }
     for (size_t i = 0; i < ladder.size(); ++i) {
+        if (i > 0) cout << " -> ";
         cout << ladder[i];
-        if (i < ladder.size() - 1) cout << " -> ";
     }
     cout << endl;
 }
