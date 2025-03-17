@@ -13,11 +13,13 @@ void error(string word1, string word2, string msg) {
 }
 
 bool edit_distance_within(const string& str1, const string& str2, int d) {
+    if (str1 == str2) return true; // If words are identical, return true if d >= 1
+
     int len1 = str1.length(), len2 = str2.length();
     if (abs(len1 - len2) > 1) return false; // Length difference must be at most 1
 
     int i = 0, j = 0, edits = 0;
-    
+
     while (i < len1 && j < len2) {
         if (str1[i] != str2[j]) {
             if (++edits > d) return false;
@@ -28,14 +30,16 @@ bool edit_distance_within(const string& str1, const string& str2, int d) {
             i++; j++; // Match, move both pointers
         }
     }
-    
-    return (edits == 1) || (edits == 0 && abs(len1 - len2) == 1); // Account for last char insert/delete
+
+    return (edits == 1) || (edits == 0 && abs(len1 - len2) == 1); // Allow for insert/delete at end
 }
+
 
 
 bool is_adjacent(const string& word1, const string& word2) {
     return edit_distance_within(word1, word2, 1);
 }
+
 
 
 vector<string> generate_word_ladder(const string& begin_word, const string& end_word, const set<string>& word_list) {
