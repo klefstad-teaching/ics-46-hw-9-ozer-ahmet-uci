@@ -31,34 +31,48 @@ bool is_adjacent(const string& word1, const string& word2) {
 }
 
 vector<string> generate_word_ladder(const string& begin_word, const string& end_word, const set<string>& word_list) {
-    if (word_list.find(end_word) == word_list.end()) return {};
+    unordered_set<string> dict(word_list.begin(), word_list.end());
+    if (!dict.count(end_word)) return {}; // End word must be in the dictionary
+
     queue<vector<string>> ladders;
-    set<string> visited;
     ladders.push({begin_word});
+    unordered_set<string> visited;
     visited.insert(begin_word);
 
     while (!ladders.empty()) {
-        int size = ladders.size();
-        set<string> local_visited;
-        while (size--) {
+        int level_size = ladders.size();
+        unordered_set<string> local_visited; // Track visited words at this BFS level
+
+        for (int i = 0; i < level_size; ++i) {
             vector<string> ladder = ladders.front();
             ladders.pop();
-            string last_word = ladder.back();
+            string current = ladder.back();
 
-            if (last_word == end_word) return ladder;
+            if (current == end_word) return ladder;
 
-            for (const string& word : word_list) {
-                if (!visited.count(word) && is_adjacent(last_word, word)) {
-                    vector<string> new_ladder = ladder;
-                    new_ladder.push_back(word);
-                    ladders.push(new_ladder);
-                    local_visited.insert(word);
+            // Generate all possible one-letter variations of the current word
+            for (int j = 0; j < current.size(); ++j) {
+                char original = current[j];
+                for (char c = 'a'; c <= 'z'; ++c) {
+                    if (c == original) continue;
+                    string neighbor = current;
+                    neighbor[j] = c;
+
+                    // Check if the generated neighbor is valid
+                    if (dict.count(neighbor) && !visited.count(neighbor)) {
+                        vector<string> new_ladder = ladder;
+                        new_ladder.push_back(neighbor);
+                        ladders.push(new_ladder);
+                        local_visited.insert(neighbor);
+                    }
                 }
+                current[j] = original; // Restore original character
             }
         }
-        visited.insert(local_visited.begin(), local_visited.end());
+        visited.insert(local_visited.begin(), local_visited.end()); // Update visited after processing the level
     }
-    return {};
+
+    return {}; // No ladder found
 }
 
 void load_words(set<string>& word_list, const string& file_name) {
